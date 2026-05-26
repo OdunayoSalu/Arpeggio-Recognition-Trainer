@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arpeggio Recognition Trainer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>Arpeggio Recognition</h1>
+        <p class="subtitle">Fast notation-to-harmony practice</p>
+      </div>
+      <div class="topbar__status" id="appStatus" aria-live="polite"></div>
+    </header>
+
+    <main>
+      <section id="settingsScreen" class="screen is-active" aria-labelledby="settingsTitle">
+        <div class="screen-heading">
+          <h2 id="settingsTitle">Settings</h2>
+          <button id="saveDefaultBtn" class="button button-secondary" type="button">Save as Default</button>
+        </div>
+        <div id="settingsValidation" class="validation" role="alert" aria-live="polite"></div>
+        <form id="settingsForm" class="settings-grid">
+          <fieldset class="setting-card">
+            <legend>Clef</legend>
+            <p class="helper">Sets whether questions appear on bass staff, treble staff, or either.</p>
+            <div class="toggle-grid" data-setting="clefs"></div>
+          </fieldset>
+
+          <fieldset class="setting-card setting-card-wide">
+            <legend>Key Signatures</legend>
+            <p class="helper">Sets which major-key contexts can be chosen for a question set.</p>
+            <div class="toggle-grid key-grid" data-setting="keys"></div>
+          </fieldset>
+
+          <fieldset class="setting-card">
+            <legend>Time</legend>
+            <p class="helper">Sets the question timer, set length, and what happens when time runs out.</p>
+            <label class="number-row">
+              <span>Seconds per question</span>
+              <input id="timePerQuestion" type="number" min="2" max="60" step="1">
+            </label>
+            <label class="number-row">
+              <span>Questions per set</span>
+              <input id="questionsPerSet" type="number" min="1" max="100" step="1">
+            </label>
+            <div class="segmented" data-setting="timerMode"></div>
+          </fieldset>
+
+          <fieldset class="setting-card">
+            <legend>Position Movement</legend>
+            <p class="helper">Sets how far the next arpeggio can move from the previous question.</p>
+            <div class="toggle-grid" data-setting="movement"></div>
+          </fieldset>
+
+          <fieldset class="setting-card">
+            <legend>Inversions</legend>
+            <p class="helper">Sets which chord tone may appear as the lowest note of the underlying shape.</p>
+            <div class="toggle-grid" data-setting="inversions"></div>
+          </fieldset>
+
+          <fieldset class="setting-card setting-card-wide">
+            <legend>Arpeggio Span</legend>
+            <p class="helper">Sets how wide the arpeggio may be from its lowest note to its highest note.</p>
+            <div class="toggle-grid" data-setting="voicingGroups"></div>
+          </fieldset>
+
+          <fieldset class="setting-card">
+            <legend>Harmony</legend>
+            <p class="helper">Sets whether questions use diatonic chords, secondary dominants, borrowed chords, or a mix.</p>
+            <div class="toggle-grid" data-setting="harmonyTypes"></div>
+            <label class="range-row percent-row" id="diatonicPercentRow">
+              <span>Diatonic chord target <b id="diatonicPercentValue">85%</b></span>
+              <input id="diatonicPercent" type="range" min="0" max="100" step="5">
+            </label>
+          </fieldset>
+
+          <fieldset class="setting-card setting-card-wide">
+            <legend>Chord Quality</legend>
+            <p class="helper">Sets which triad, suspended, and seventh-chord types can appear.</p>
+            <div class="toggle-grid quality-grid" data-setting="chordQualities"></div>
+          </fieldset>
+
+          <fieldset class="setting-card">
+            <legend>Entry Point</legend>
+            <p class="helper">Sets which part of the arpeggio shape may sound first.</p>
+            <div class="toggle-grid" data-setting="entryPoints"></div>
+          </fieldset>
+
+          <fieldset class="setting-card setting-card-wide">
+            <legend>Texture</legend>
+            <p class="helper">Easy = one note at a time. Medium = some two-note moments. Hard = mixed accompaniment textures with single notes, dyads, octaves, and small chord clusters.</p>
+            <div class="toggle-grid" data-setting="textures"></div>
+          </fieldset>
+
+          <fieldset class="setting-card setting-card-wide">
+            <legend>Direction / Contour</legend>
+            <p class="helper">Ascending rises, Descending falls, Turnaround changes direction once, Mixed uses less predictable paths.</p>
+            <div class="toggle-grid" data-setting="contours"></div>
+          </fieldset>
+
+          <fieldset class="setting-card">
+            <legend>Arpeggio Length</legend>
+            <p class="helper">Sets how many sounded events appear in each notated figure.</p>
+            <div class="toggle-grid" data-setting="arpeggioLengths"></div>
+          </fieldset>
+        </form>
+        <div class="bottom-actions">
+          <button id="startSetBtn" class="button button-primary" type="button">Start Set</button>
+        </div>
+      </section>
+
+      <section id="orientationScreen" class="screen orientation-screen" aria-labelledby="orientationTitle">
+        <div class="quiz-toolbar">
+          <div>
+            <h2 id="orientationTitle">Orient to the Key Signature</h2>
+            <p class="subtitle">Take a moment with the staff before the timer starts.</p>
+          </div>
+          <button id="orientationSettingsBtn" class="button button-secondary" type="button">Back to Settings</button>
+        </div>
+
+        <div class="notation-panel orientation-panel">
+          <div id="orientationNotation" class="notation" aria-label="Empty staff with key signature"></div>
+        </div>
+
+        <div class="orientation-actions">
+          <button id="beginQuizBtn" class="button button-primary" type="button">Start Questions</button>
+          <button id="refreshSetBtn" class="button button-secondary" type="button">Refresh Set</button>
+        </div>
+      </section>
+
+      <section id="quizScreen" class="screen quiz-screen" aria-labelledby="quizTitle">
+        <div class="quiz-toolbar">
+          <div>
+            <h2 id="quizTitle">Question <span id="questionNumber">1</span></h2>
+            <p id="quizMeta" class="subtitle"></p>
+          </div>
+          <div class="quiz-actions">
+            <button id="pauseBtn" class="button button-secondary" type="button">Pause</button>
+            <button id="endSetBtn" class="button button-secondary" type="button">End Set</button>
+          </div>
+        </div>
+
+        <div class="timer-wrap" aria-live="polite">
+          <div id="timerBar" class="timer-bar"></div>
+          <div id="timerText" class="timer-text"></div>
+        </div>
+
+        <div class="notation-panel">
+          <div id="notation" class="notation" aria-label="Music notation"></div>
+        </div>
+
+        <div id="feedbackLine" class="feedback-line" aria-live="polite"></div>
+
+        <div id="answerPanel" class="answer-panel"></div>
+
+        <div id="pauseOverlay" class="pause-overlay" hidden>
+          <div class="pause-card">
+            <h3>Paused</h3>
+            <button id="resumeBtn" class="button button-primary" type="button">Resume</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="summaryScreen" class="screen" aria-labelledby="summaryTitle">
+        <div class="screen-heading">
+          <h2 id="summaryTitle">Review</h2>
+          <div class="summary-actions">
+            <button id="newSetBtn" class="button button-primary" type="button">Start New Set</button>
+            <button id="settingsBtn" class="button button-secondary" type="button">Back to Settings</button>
+          </div>
+        </div>
+        <div id="summaryStats" class="summary-stats"></div>
+        <div id="summaryList" class="summary-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.3/build/cjs/vexflow.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
