@@ -619,13 +619,20 @@ input:focus-visible {
 
   .key-grid,
   .quality-grid,
-  .answer-grid,
+  .answer-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .answer-grid.root-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .answer-grid.accidental-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .answer-grid.quality-answer-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .answer-button {
