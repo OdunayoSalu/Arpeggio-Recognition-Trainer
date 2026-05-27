@@ -711,6 +711,7 @@
     let sequence = expandTemplate(voicing.template, voicing.degreeMap, length);
     sequence = applyContour(sequence, contour);
     sequence = rotateForEntryPoint(sequence, entryPoint);
+    sequence = ensureChordTonesInFirstEvents(sequence, voicing.template, length);
     const events = [];
     for (let index = 0; index < length; index += 1) {
       const base = sequence[index % sequence.length];
@@ -740,6 +741,23 @@
       });
     }
     return events;
+  }
+
+  function ensureChordTonesInFirstEvents(sequence, template, length) {
+    const required = Array.from(new Set(template.map((degree) => normalizeChordDegree(degree))));
+    const protectedPrefix = sequence.slice(0, length);
+    const present = new Set(protectedPrefix.map((note) => normalizeChordDegree(note.slot)));
+    const missing = required.filter((degree) => !present.has(degree));
+    if (!missing.length) return sequence;
+
+    const repaired = [...sequence];
+    missing.forEach((degree, index) => {
+      const replacement = sequence.find((note) => normalizeChordDegree(note.slot) === degree);
+      if (!replacement) return;
+      const replaceIndex = Math.max(0, length - 1 - index);
+      repaired[replaceIndex] = replacement;
+    });
+    return repaired;
   }
 
   function expandTemplate(template, degreeMap, length) {
@@ -818,12 +836,23 @@
     const totalSpan = Math.max(...allMidi) - Math.min(...allMidi);
     const spanGroup = question.voicing.spanGroup || "basic";
     if (!spanMatchesGroup(spanGroup, question.voicing.template, totalSpan, question.chord.tones.length === 4)) return false;
+    if (!notationEventsContainAllChordTones(question)) return false;
     return question.events.every((event) => {
       if (event.notes.length <= 1) return true;
       const span = event.notes[event.notes.length - 1].midi - event.notes[0].midi;
       if (event.notes.length >= 3) return span <= 10;
       return span <= 12;
     });
+  }
+
+  function notationEventsContainAllChordTones(question) {
+    const required = new Set(question.chord.tones.map((tone) => normalizeChordDegree(tone.slot)));
+    const present = new Set(
+      question.events
+        .flatMap((event) => event.notes)
+        .map((note) => normalizeChordDegree(note.slot))
+    );
+    return Array.from(required).every((degree) => present.has(degree));
   }
 
   function renderQuestion() {
@@ -995,13 +1024,17 @@
       ? notePc(userAnswer.rootLetter, userAnswer.accidental)
       : null;
     const suspendedEquivalent = validSuspendedEquivalent(question, userAnswer.quality, rootPc);
-    const rootCorrect = rootPc === correct.rootPc || suspendedEquivalent;
+    const pitchCorrect = rootPc === correct.rootPc || suspendedEquivalent;
+    const rootLetterCorrect = pitchCorrect || userAnswer.rootLetter === correct.rootLetter;
+    const accidentalCorrect = pitchCorrect || userAnswer.accidental === correct.accidental;
+    const rootCorrect = pitchCorrect;
     const qualityCorrect = userAnswer.quality === correct.quality || suspendedEquivalent;
     const functionCorrect = userAnswer.function === correct.function;
     const completed = ["rootLetter", "accidental", "quality", "function"].every((key) => userAnswer[key] !== undefined);
     return {
       rootCorrect,
-      accidentalCorrect: rootCorrect,
+      rootLetterCorrect,
+      accidentalCorrect,
       qualityCorrect,
       functionCorrect,
       completed,
@@ -1035,9 +1068,10 @@
         return;
       }
       if (rootSection) {
-        if (checked.rootCorrect && selected) button.classList.add("is-correct");
-        if (!checked.rootCorrect && selected) button.classList.add("is-wrong");
-        if (!checked.rootCorrect && value === correctValue) button.classList.add("is-correct");
+        const sectionCorrect = section === "rootLetter" ? checked.rootLetterCorrect : checked.accidentalCorrect;
+        if (sectionCorrect && selected) button.classList.add("is-correct");
+        if (!sectionCorrect && selected) button.classList.add("is-wrong");
+        if (!sectionCorrect && value === correctValue) button.classList.add("is-correct");
         return;
       }
       const sectionCorrect = section === "quality" ? checked.qualityCorrect : checked.functionCorrect;
